@@ -10,6 +10,16 @@ module Rack #:nodoc:
   #
   class OAuth
 
+    # Returns all of the Rack::OAuth instances found in this Rack 'env' Hash
+    def self.all env
+      env['rack.oauth']
+    end
+
+    # Simple helper to get an instance of Rack::OAuth by name found in this Rack 'env' Hash
+    def self.get env, name
+      all(env)[name.to_s]
+    end
+
     DEFAULT_OPTIONS = {
       :login_path    => '/oauth_login',
       :callback_path => '/oauth_callback',
@@ -58,8 +68,14 @@ module Rack #:nodoc:
     # a Proc that accepts a JSON string and returns a Ruby object.  Defaults to using the 'json' gem, if available.
     attr_accessor :json_parser
 
-    def initialize app, options = {}
+    # an arbitrary name for this instance of Rack::OAuth
+    attr_accessor :name
+
+    def initialize app, *args
       @app = app
+
+      options = args.pop
+      @name   = (args.first || 'default').to_s
       
       DEFAULT_OPTIONS.each {|name, value| send "#{name}=", value }
       options.each         {|name, value| send "#{name}=", value } if options
@@ -68,6 +84,10 @@ module Rack #:nodoc:
     end
 
     def call env
+      
+      env['rack.oauth'] ||= {}
+      env['rack.oauth'][name.to_s] = self
+
       @app.call env
 
       #case env['PATH_INFO']
