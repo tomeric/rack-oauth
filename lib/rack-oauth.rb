@@ -68,11 +68,13 @@ module Rack #:nodoc:
     end
 
     def call env
-      case env['PATH_INFO']
-      when login_path;      do_login     env
-      when callback_path;   do_callback  env
-      else;                 @app.call    env
-      end
+      @app.call env
+
+      #case env['PATH_INFO']
+      #when login_path;      do_login     env
+      #when callback_path;   do_callback  env
+      #else;                 @app.call    env
+      #end
     end
 
     def do_login env
