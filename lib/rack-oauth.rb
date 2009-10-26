@@ -75,13 +75,16 @@ module Rack #:nodoc:
     attr_accessor :json_parser
 
     # an arbitrary name for this instance of Rack::OAuth
-    attr_accessor :name
+    def name
+      @name.to_s
+    end
+    attr_writer :name
 
     def initialize app, *args
       @app = app
 
       options = args.pop
-      @name   = (args.first || 'default').to_s
+      @name   = args.first || 'default'
       
       DEFAULT_OPTIONS.each {|name, value| send "#{name}=", value }
       options.each         {|name, value| send "#{name}=", value } if options
@@ -90,9 +93,8 @@ module Rack #:nodoc:
     end
 
     def call env
-      
       env['rack.oauth'] ||= {}
-      env['rack.oauth'][name.to_s] = self
+      env['rack.oauth'][name] = self
 
       @app.call env
 
@@ -105,24 +107,29 @@ module Rack #:nodoc:
 
     def do_login env
       request = consumer.get_request_token :oauth_callback => ::File.join("http://#{ env['HTTP_HOST'] }", callback_path)
-      session(env)[:oauth_request_token]  = request.token
-      session(env)[:oauth_request_secret] = request.secret
+      session(env)[:token]  = request.token
+      session(env)[:secret] = request.secret
       [ 302, {'Location' => request.authorize_url}, [] ]
     end
 
     def do_callback env
-      request  = ::OAuth::RequestToken.new consumer, session(env)[:oauth_request_token], session(env)[:oauth_request_secret]
-      access   = request.get_access_token :oauth_verifier => Rack::Request.new(env).params['oauth_verifier']
-      response = consumer.request :get, '/account/verify_credentials.json', access, :scheme => :query_string
+      session(env)[:verifier] = Rack::Request.new(env).params['oauth_verifier']
+      [ 302, { 'Location' => redirect_to }, [] ]
+    end
 
-      # clean up session variables we used so we're not polluting the session
-      session(env).delete :oauth_request_token
-      session(env).delete :oauth_request_secret
-
-      # put the user information received (json -> ruby) in the session
-      session(env)[session_key] = json_parser.call response.body if response
-
-      [ 302, {'Location' => redirect_to}, [] ]
+    # Usage:
+    #
+    #   request :post, '/statuses/update.json', :status => params[:tweet]
+    #   request 'GET', '/account/verify_credentials.json'
+    #
+    # ### request :post, '/statuses/update.json', {}, :status => params[:tweet]
+    # ### @cached_consumer.request method, url, @cached_access, *args
+    # ### response = consumer.request method, '/account/verify_credentials.json', access, :scheme => :query_string
+    def request method, path, *args
+      request  = ::OAuth::RequestToken.new consumer, session(env)[:token], session(env)[:secret]
+      access   = request.get_access_token :oauth_verifier => session(env)[:verifier]
+      
+      consumer.request method.to_s.downcase.to_sym, path, access, {}, *args
     end
 
     def consumer
@@ -141,10 +148,21 @@ module Rack #:nodoc:
       raise @errors.join(', ')
     end
 
+    # Returns a hash of session variables, specific to this instance of Rack::OAuth and the end-user
+    #
+    # All user-specific variables are stored in the session.
+    #
+    # The variables we currently keep track of are:
+    # - token
+    # - secret
+    # - verifier
+    #
+    # With all three of these, we can make arbitrary requests to our OAuth provider for this user.
     def session env
       raise "Rack env['rack.session'] is nil ... has a Rack::Session middleware be enabled?  " + 
             "use :rack_session for custom key" if env[rack_session].nil?      
-      env[rack_session]
+      env[rack_session]['rack.oauth']       ||= {}
+      env[rack_session]['rack.oauth'][name] ||= {}
     end
 
     # Returns the #name of this Rack::OAuth unless the name is 'default', in which case it returns nil
