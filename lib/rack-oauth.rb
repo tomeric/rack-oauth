@@ -68,6 +68,8 @@ module Rack #:nodoc:
     end
 
     def call env
+      env['rack.oauth'] = self
+
       case env['PATH_INFO']
       when login_path;      do_login     env
       when callback_path;   do_callback  env
@@ -82,10 +84,17 @@ module Rack #:nodoc:
       [ 302, {'Location' => request.authorize_url}, [] ]
     end
 
+    def make_request method, url, *args
+      @cached_consumer.request method, url, @cached_access, *args
+    end
+
     def do_callback env
       request  = ::OAuth::RequestToken.new consumer, session(env)[:oauth_request_token], session(env)[:oauth_request_secret]
       access   = request.get_access_token :oauth_verifier => Rack::Request.new(env).params['oauth_verifier']
       response = consumer.request :get, '/account/verify_credentials.json', access, :scheme => :query_string
+
+      @cached_consumer = consumer
+      @cached_access   = access
 
       # clean up session variables we used so we're not polluting the session
       session(env).delete :oauth_request_token
@@ -97,7 +106,7 @@ module Rack #:nodoc:
       [ 302, {'Location' => redirect_to}, [] ]
     end
 
-    protected
+  protected
 
     def consumer
       @consumer ||= ::OAuth::Consumer.new consumer_key, consumer_secret, :site => consumer_site
