@@ -16,7 +16,7 @@ module Rack #:nodoc:
     end
 
     # Simple helper to get an instance of Rack::OAuth by name found in this Rack 'env' Hash
-    def self.get env, name
+    def self.get env, name = 'default'
       all(env)[name.to_s]
     end
 
@@ -96,11 +96,11 @@ module Rack #:nodoc:
 
       @app.call env
 
-      #case env['PATH_INFO']
-      #when login_path;      do_login     env
-      #when callback_path;   do_callback  env
-      #else;                 @app.call    env
-      #end
+      case env['PATH_INFO']
+      when login_path;      do_login     env
+      when callback_path;   do_callback  env
+      else;                 @app.call    env
+      end
     end
 
     def do_login env
@@ -124,8 +124,6 @@ module Rack #:nodoc:
 
       [ 302, {'Location' => redirect_to}, [] ]
     end
-
-    protected
 
     def consumer
       @consumer ||= ::OAuth::Consumer.new consumer_key, consumer_secret, :site => consumer_site

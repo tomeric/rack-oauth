@@ -1,0 +1,56 @@
+--- !ruby/object:OAuth::RequestToken 
+consumer: !ruby/object:OAuth::Consumer 
+  http: !ruby/object:Net::HTTP 
+    address: twitter.com
+    close_on_empty_response: false
+    curr_http_version: "1.1"
+    debug_output: 
+    newimpl: true
+    open_timeout: 
+    port: 80
+    read_timeout: 60
+    seems_1_0_server: false
+    socket: 
+    ssl_context: !ruby/object:OpenSSL::SSL::SSLContext 
+      ca_file: /etc/ssl/certs/ca-certificates.crt
+      ca_path: 
+      cert: 
+      cert_store: 
+      client_ca: 
+      client_cert_cb: 
+      extra_chain_cert: 
+      key: 
+      options: 
+      session_get_cb: 
+      session_id_context: 
+      session_new_cb: 
+      session_remove_cb: 
+      timeout: 
+      tmp_dh_callback: 
+      verify_callback: 
+      verify_depth: 5
+      verify_mode: 1
+    started: false
+    use_ssl: false
+  http_method: :post
+  key: 4JjFmhjfZyQ6rdbiql5A
+  options: 
+    :http_method: :post
+    :scheme: :header
+    :oauth_version: "1.0"
+    :proxy: 
+    :request_token_path: /oauth/request_token
+    :authorize_path: AUTH_PATH
+    :site: http://twitter.com
+    :signature_method: HMAC-SHA1
+    :access_token_path: /oauth/access_token
+  secret: rv4ZaCgvxVPVjxHIDbMxTGFbIMxUa4KkIdPqL7HmaQo
+params: 
+  oauth_callback_confirmed: "true"
+  oauth_token_secret: XnS8UEe2l4iKAYqPBFhQ0wfI0s3i2nLE1RjnC1CbA
+  :oauth_callback_confirmed: "true"
+  :oauth_token_secret: XnS8UEe2l4iKAYqPBFhQ0wfI0s3i2nLE1RjnC1CbA
+  oauth_token: 6dhuchM6Wzh9PpNv0KGB0h3AxzHLZ2Vy9erSJsOAv4
+  :oauth_token: 6dhuchM6Wzh9PpNv0KGB0h3AxzHLZ2Vy9erSJsOAv4
+secret: XnS8UEe2l4iKAYqPBFhQ0wfI0s3i2nLE1RjnC1CbA
+token: 6dhuchM6Wzh9PpNv0KGB0h3AxzHLZ2Vy9erSJsOAv4
