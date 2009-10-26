@@ -29,17 +29,23 @@ module Rack #:nodoc:
       :json_parser   => lambda {|json_string| require 'json'; JSON.parse(json_string); }
     }
 
-    # [internal] the URL that should initiate OAuth and redirect to the OAuth provider's login page
-    attr_accessor :login_path
+    # the URL that should initiate OAuth and redirect to the OAuth provider's login page
+    def login_path
+      ::File.join *[@login_path.to_s, name_unless_default].compact
+    end
+    attr_writer :login_path
     alias login  login_path
     alias login= login_path=
 
-    # [internal] the URL that the OAuth provider should callback to after OAuth login is complete
-    attr_accessor :callback_path
+    # the URL that the OAuth provider should callback to after OAuth login is complete
+    def callback_path
+      ::File.join *[@callback_path.to_s, name_unless_default].compact
+    end
+    attr_writer :callback_path
     alias callback  callback_path
     alias callback= callback_path=
 
-    # [external] the URL that Rack::OAuth should redirect to after the OAuth has been completed (part of your app)
+    # the URL that Rack::OAuth should redirect to after the OAuth has been completed (part of your app)
     attr_accessor :redirect_to
     alias redirect  redirect_to
     alias redirect= redirect_to=
@@ -141,6 +147,11 @@ module Rack #:nodoc:
       raise "Rack env['rack.session'] is nil ... has a Rack::Session middleware be enabled?  " + 
             "use :rack_session for custom key" if env[rack_session].nil?      
       env[rack_session]
+    end
+
+    # Returns the #name of this Rack::OAuth unless the name is 'default', in which case it returns nil
+    def name_unless_default
+      name == 'default' ? nil : name
     end
 
   end
