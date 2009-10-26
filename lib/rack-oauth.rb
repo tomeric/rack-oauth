@@ -24,7 +24,6 @@ module Rack #:nodoc:
       :login_path    => '/oauth_login',
       :callback_path => '/oauth_callback',
       :redirect_to   => '/oauth_complete',
-      :session_key   => 'oauth_user',
       :rack_session  => 'rack.session',
       :json_parser   => lambda {|json_string| require 'json'; JSON.parse(json_string); }
     }
@@ -49,9 +48,6 @@ module Rack #:nodoc:
     attr_accessor :redirect_to
     alias redirect  redirect_to
     alias redirect= redirect_to=
-
-    # the name of the Session key to use to store user account information (if OAuth completed OK)
-    attr_accessor :session_key
 
     # the name of the Rack env variable used for the session
     attr_accessor :rack_session
@@ -109,27 +105,57 @@ module Rack #:nodoc:
       request = consumer.get_request_token :oauth_callback => ::File.join("http://#{ env['HTTP_HOST'] }", callback_path)
       session(env)[:token]  = request.token
       session(env)[:secret] = request.secret
-      [ 302, {'Location' => request.authorize_url}, [] ]
+      [ 302, { 'Content-Type' => 'text/html', 'Location' => request.authorize_url }, [] ]
     end
 
     def do_callback env
       session(env)[:verifier] = Rack::Request.new(env).params['oauth_verifier']
-      [ 302, { 'Location' => redirect_to }, [] ]
+      request = ::OAuth::RequestToken.new consumer, session(env)[:token], session(env)[:secret]
+      access  = request.get_access_token :oauth_verifier => session(env)[:verifier]
+      set_access_token env, access
+
+      # TESTING
+      session(env)[:credentials] = request env, '/account/verify_credentials.json'
+
+      [ 302, { 'Content-Type' => 'text/html', 'Location' => redirect_to }, [] ]
+    end
+
+    # NEED TO BE ABLE TO OVERRIDE THESE ... these cache access tokens ... these will leak memory like WOW
+    #
+    # access_token.to_yaml is too big to keep in a cookie session store  :/
+    #
+    # NOTE: this does NOT work with shotgun because it reloads the class and we lose the instance variables
+    def get_access_token env
+      puts "GET @tokens.keys => #{ @tokens.keys }"
+      @tokens[ session(env)[:token] + session(env)[:secret] ]
+    end
+
+    def set_access_token env, access_token
+      puts "setting access_token:"
+      puts access_token.to_yaml
+      
+      @tokens ||= {}
+      @tokens[ session(env)[:token] + session(env)[:secret] ] = access_token
+      puts "SET @tokens.keys => #{ @tokens.keys }"
     end
 
     # Usage:
     #
-    #   request :post, '/statuses/update.json', :status => params[:tweet]
+    #   request '/account/verify_credentials.json'
     #   request 'GET', '/account/verify_credentials.json'
+    #   request :post, '/statuses/update.json', :status => params[:tweet]
     #
-    # ### request :post, '/statuses/update.json', {}, :status => params[:tweet]
-    # ### @cached_consumer.request method, url, @cached_access, *args
-    # ### response = consumer.request method, '/account/verify_credentials.json', access, :scheme => :query_string
-    def request method, path, *args
-      request  = ::OAuth::RequestToken.new consumer, session(env)[:token], session(env)[:secret]
-      access   = request.get_access_token :oauth_verifier => session(env)[:verifier]
-      
-      consumer.request method.to_s.downcase.to_sym, path, access, {}, *args
+    def request env, method, path = nil, *args
+      if method.to_s.start_with?('/')
+        path   = method
+        method = :get
+      end
+
+      consumer.request method.to_s.downcase.to_sym, path, get_access_token(env), *args
+    end
+
+    def verified? env
+      [ :token, :secret, :verifier ].all? { |required_session_key| session(env)[required_session_key] }
     end
 
     def consumer
