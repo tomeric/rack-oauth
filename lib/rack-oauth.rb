@@ -45,12 +45,17 @@ module Rack #:nodoc:
         oauth.request oauth_request_env, *args
       end
 
+      # Get the access token object for the currently authorized session
+      def oauth_access_token name = nil
+        oauth(name).get_access_token(oauth_request_env)
+      end
+
       # If Rack::OAuth#get_access_token is nil given the #oauth_request_env available
       # (inotherwords, it's nil in our user's current session), then we didn't 
       # log in.  If we have an access token for this particular session, then 
       # we are logged in.
       def logged_in? name = nil
-        !! oauth(name).get_access_token(oauth_request_env)
+        !! oauth_access_token(name)
       end
 
       # Returns the path to rediret to for logging in via OAuth
@@ -207,13 +212,9 @@ module Rack #:nodoc:
       session(env)[:verifier] = Rack::Request.new(env).params['oauth_verifier']
       request = ::OAuth::RequestToken.new consumer, session(env)[:token], session(env)[:secret]
       access  = request.get_access_token :oauth_verifier => session(env)[:verifier]
+
+      # hold onto the access token
       set_access_token env, access
-
-      # TESTING
-      session(env)[:credentials] = request env, '/account/verify_credentials.json'
-
-      puts 'credentials:'
-      puts session(env)[:credentials]
 
       [ 302, { 'Content-Type' => 'text/html', 'Location' => redirect_to }, [] ]
     end
@@ -222,7 +223,6 @@ module Rack #:nodoc:
     #
     # Keeps tokens in an instance variable
     def get_access_token_via_instance_variable key
-      puts "get_access_token_via_instance_variable #{ key }"
       @tokens[key] if @tokens
     end
 
@@ -241,13 +241,11 @@ module Rack #:nodoc:
     #      access tokens using useful data like a user's name in the future
     def key_for_env env
       val = session(env)[:token] + session(env)[:secret] if session(env)[:token] and session(env)[:secret]
-      puts "key_for_env => #{ val }"
       session(env)[:token] + session(env)[:secret] if session(env)[:token] and session(env)[:secret]
     end
 
     # Gets an Access Token by key using access_token_getter (for this specific ENV)
     def get_access_token env
-      puts "get_access_token"
       access_token_getter.call key_for_env(env), self
     end
 
@@ -273,7 +271,10 @@ module Rack #:nodoc:
       consumer.request method.to_s.downcase.to_sym, path, get_access_token(env), *args
     end
 
-    # ...
+    # Returns the mock response, if one has been set via #mock_request, for a method and path.
+    #
+    # Raises an exception if the response doesn't exist because we never want the test environment 
+    # to *actually* make real requests!
     def self.mock_response_for method, path
       unless @mock_responses and @mock_responses[path] and @mock_responses[path][method]
         raise "No mock response created for #{ method.inspect } #{ path.inspect }"
@@ -282,7 +283,9 @@ module Rack #:nodoc:
       end
     end
 
-    # ...
+    # Set the response that should be returned when a particular method and path are called.
+    #
+    # This is used when Rack::OAuth::test_mode? is true
     def self.mock_request method, path, response = nil
       if method.to_s.start_with?('/')
         response = path

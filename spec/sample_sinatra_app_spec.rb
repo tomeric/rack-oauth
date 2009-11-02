@@ -4,10 +4,11 @@ require 'json'
 require 'sinatra/base'
 class SampleSinatraApp < Sinatra::Base
 
+  # this is hardcore optional ... if you want to override where ALL tokens are persisted, you can do this ...
+
   def self.get_token key, oauth
     @tokens[key] if @tokens
   end
-
   def self.set_token key, token, oauth
     @tokens ||= {}
     @tokens[key] = token
@@ -32,6 +33,12 @@ class SampleSinatraApp < Sinatra::Base
     else
       redirect oauth_login_path
     end
+  end
+
+  get '/oauth_complete' do
+    info = JSON.parse oauth_request('/account/verify_credentials.json')
+    name = info['screen_name']
+    $access_tokens[name] = oauth_access_token
   end
 
   get '/get_user_info' do
@@ -80,6 +87,19 @@ describe SampleSinatraApp do
     Rack::OAuth.mock_request '/account/verify_credentials.json', example_json
 
     request('/get_user_info').body.should include('remitaylor')
+  end
+
+  it 'should be able to persist access token by some arbitrary value like twitter screen_name' do
+    $access_tokens ||= {}
+    request('/oauth_login').status.should == 302
+
+    # token should be nil
+    $access_tokens['remitaylor'].should be_nil
+
+    request('/oauth_complete')
+
+    # token should not be nil because the oauth_complete goes and gets and persists it
+    $access_tokens['remitaylor'].should_not be_nil
   end
 
 end
