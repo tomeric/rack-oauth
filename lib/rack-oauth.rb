@@ -88,12 +88,34 @@ module Rack #:nodoc:
     end
 
     DEFAULT_OPTIONS = {
-      :login_path    => '/oauth_login',
-      :callback_path => '/oauth_callback',
-      :redirect_to   => '/oauth_complete',
-      :rack_session  => 'rack.session',
-      :json_parser   => lambda {|json_string| require 'json'; JSON.parse(json_string); }
+      :login_path          => '/oauth_login',
+      :callback_path       => '/oauth_callback',
+      :redirect_to         => '/oauth_complete',
+      :rack_session        => 'rack.session',
+      :json_parser         => lambda {|json_string| require 'json'; JSON.parse(json_string); },
+      :access_token_getter => lambda {|key, oauth| oauth.get_access_token_via_instance_variable(key) },
+      :access_token_setter => lambda {|key, token, oauth| oauth.set_access_token_via_instance_variable(key, token) }
     }
+
+    # A proc that accepts an argument for the KEY we're using to get an access token 
+    # that should return the actual access token object.
+    #
+    # A second parameter is passed to your block with the Rack::OAuth instance
+    #
+    # This allows you to override how access tokens are persisted
+    attr_accessor :access_token_getter
+    alias get  access_token_getter
+    alias get= access_token_getter=
+
+    # A proc that accepts an argument for the KEY we're using to set an access token 
+    # and a second argument with the actual access token object.
+    #
+    # A third parameter is passed to your block with the Rack::OAuth instance
+    #
+    # This allows you to override how access tokens are persisted
+    attr_accessor :access_token_setter
+    alias set  access_token_setter
+    alias set= access_token_setter=
 
     # the URL that should initiate OAuth and redirect to the OAuth provider's login page
     def login_path
@@ -196,20 +218,42 @@ module Rack #:nodoc:
       [ 302, { 'Content-Type' => 'text/html', 'Location' => redirect_to }, [] ]
     end
 
-    # NEED TO BE ABLE TO OVERRIDE THESE ... these cache access tokens ... these will leak memory like WOW
+    # Default implementation of access_token_getter
     #
-    # access_token.to_yaml is too big to keep in a cookie session store  :/
-    #
-    # NOTE: this does NOT work with shotgun because it reloads the class and we lose the instance variables
-    def get_access_token env
-      if @tokens and session(env)[:token] and session(env)[:secret]
-        @tokens[ session(env)[:token] + session(env)[:secret] ]
-      end
+    # Keeps tokens in an instance variable
+    def get_access_token_via_instance_variable key
+      puts "get_access_token_via_instance_variable #{ key }"
+      @tokens[key] if @tokens
     end
 
-    def set_access_token env, access_token
+    # Default implementation of access_token_setter
+    #
+    # Keeps tokens in an instance variable
+    def set_access_token_via_instance_variable key, token
       @tokens ||= {}
-      @tokens[ session(env)[:token] + session(env)[:secret] ] = access_token
+      @tokens[key] = token
+    end
+
+    # Returns the key to use (for this particular session) to get or set an 
+    # access token for this Rack env
+    #
+    # TODO this will very likely change as we want to be able to get or set 
+    #      access tokens using useful data like a user's name in the future
+    def key_for_env env
+      val = session(env)[:token] + session(env)[:secret] if session(env)[:token] and session(env)[:secret]
+      puts "key_for_env => #{ val }"
+      session(env)[:token] + session(env)[:secret] if session(env)[:token] and session(env)[:secret]
+    end
+
+    # Gets an Access Token by key using access_token_getter (for this specific ENV)
+    def get_access_token env
+      puts "get_access_token"
+      access_token_getter.call key_for_env(env), self
+    end
+
+    # Sets an Access Token by key and value using access_token_setter (for this specific ENV)
+    def set_access_token env, token
+      access_token_setter.call key_for_env(env), token, self
     end
 
     # Usage:

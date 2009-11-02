@@ -17,6 +17,8 @@ def mock_request_token options = {}
   YAML.load data(:unauthorized_request_token).sub('AUTH_PATH', options[:authorize_path] || '/oauth/authorize')
 end
 
+RackBox.app = lambda {}
+
 Spec::Runner.configure do |config|
   config.use_blackbox = true
 end

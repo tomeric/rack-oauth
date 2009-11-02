@@ -3,9 +3,24 @@ require File.dirname(__FILE__) + '/spec_helper'
 require 'json'
 require 'sinatra/base'
 class SampleSinatraApp < Sinatra::Base
+
+  def self.get_token key, oauth
+    @tokens[key] if @tokens
+  end
+
+  def self.set_token key, token, oauth
+    @tokens ||= {}
+    @tokens[key] = token
+  end
+
   use Rack::Session::Cookie
-  use Rack::OAuth, :site => 'http://twitter.com', :key => '4JjFmhjfZyQ6rdbiql5A', 
-                   :secret => 'rv4ZaCgvxVPVjxHIDbMxTGFbIMxUa4KkIdPqL7HmaQo'
+  use Rack::OAuth, :site   => 'http://twitter.com',
+                   :key    => '4JjFmhjfZyQ6rdbiql5A', 
+                   :secret => 'rv4ZaCgvxVPVjxHIDbMxTGFbIMxUa4KkIdPqL7HmaQo',
+                   :get    => method(:get_token),
+                   :set    => method(:set_token)
+
+  enable :raise_errors
 
   helpers do
     include Rack::OAuth::Methods
