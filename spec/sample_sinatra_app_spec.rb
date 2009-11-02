@@ -15,7 +15,7 @@ class SampleSinatraApp < Sinatra::Base
     if logged_in?
       "Hello World"
     else
-      redirect login_path
+      redirect oauth_login_path
     end
   end
 

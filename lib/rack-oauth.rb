@@ -10,49 +10,71 @@ module Rack #:nodoc:
   #
   class OAuth
 
-    # helper methods
+    # Helper methods intended to be included in your Rails controller or 
+    # in your Sinatra helpers block
     module Methods
       
-      def request_env
+      # [Internal] this method returns the Rack 'env' for the current request.
+      #
+      # This looks for #env or #request.env by default.  If these don't return 
+      # something, then we raise an exception and you should override this method 
+      # so it returns the Rack env that we need.
+      def oauth_request_env
         if respond_to?(:env)
           env
         elsif respond_to?(:request) and request.respond_to?(:env)
           request.env
         else
-          raise "Couldn't find 'env' ... please override #request_env"
+          raise "Couldn't find 'env' ... please override #oauth_request_env"
         end
       end
 
-      def oauth name = :default
-        oauth = Rack::OAuth.get(request_env, name)
+      # Returns the instance of Rack::OAuth given a name (defaults to the default Rack::OAuth name)
+      def oauth name = nil
+        oauth = Rack::OAuth.get(oauth_request_env, nil)
         raise "Couldn't find Rack::OAuth instance with name #{ name }" unless oauth
         oauth
       end
 
+      # Makes a request using the stored access token for the current session.
+      #
+      # Without a user logged in to an OAuth provider in the current session, this won't work.
+      #
+      # This is *not* the method to use to fire off requests for saved access tokens.
       def oauth_request *args
-        oauth.request request_env, *args
+        oauth.request oauth_request_env, *args
       end
 
-      # If Rack::OAuth#get_access_token is nil given the #request_env available
+      # If Rack::OAuth#get_access_token is nil given the #oauth_request_env available
       # (inotherwords, it's nil in our user's current session), then we didn't 
       # log in.  If we have an access token for this particular session, then 
       # we are logged in.
-      def logged_in?
-        !! oauth.get_access_token(request_env)
+      def logged_in? name = nil
+        !! oauth(name).get_access_token(oauth_request_env)
       end
 
-      def login_path
-        oauth.login_path
+      # Returns the path to rediret to for logging in via OAuth
+      def oauth_login_path name = nil
+        oauth(name).login_path
       end
 
     end
 
     class << self
+
+      # The name we use for Rack::OAuth instances when a name is not given.
+      #
+      # This is 'default' by default
+      attr_accessor :default_instance_name
+
+      # Set this equal to true to enable 'test mode'
       attr_accessor :test_mode_enabled
       def enable_test_mode()  self.test_mode_enabled =  true  end
       def disable_test_mode() self.test_mode_enabled =  false end
       def test_mode?()             test_mode_enabled == true  end
     end
+
+    @default_instance_name = 'default'
 
     # Returns all of the Rack::OAuth instances found in this Rack 'env' Hash
     def self.all env
@@ -60,7 +82,8 @@ module Rack #:nodoc:
     end
 
     # Simple helper to get an instance of Rack::OAuth by name found in this Rack 'env' Hash
-    def self.get env, name = 'default'
+    def self.get env, name = nil
+      name = Rack::OAuth.default_instance_name if name.nil?
       all(env)[name.to_s]
     end
 
@@ -124,7 +147,7 @@ module Rack #:nodoc:
       @app = app
 
       options = args.pop
-      @name   = args.first || 'default'
+      @name   = args.first || Rack::OAuth.default_instance_name
       
       DEFAULT_OPTIONS.each {|name, value| send "#{name}=", value }
       options.each         {|name, value| send "#{name}=", value } if options
@@ -206,7 +229,7 @@ module Rack #:nodoc:
       consumer.request method.to_s.downcase.to_sym, path, get_access_token(env), *args
     end
 
-    # move this stuff somewhere else that's just related to test stuff?
+    # ...
     def self.mock_response_for method, path
       unless @mock_responses and @mock_responses[path] and @mock_responses[path][method]
         raise "No mock response created for #{ method.inspect } #{ path.inspect }"
@@ -214,6 +237,8 @@ module Rack #:nodoc:
         return @mock_responses[path][method]
       end
     end
+
+    # ...
     def self.mock_request method, path, response = nil
       if method.to_s.start_with?('/')
         response = path
@@ -265,15 +290,7 @@ module Rack #:nodoc:
 
     # Returns the #name of this Rack::OAuth unless the name is 'default', in which case it returns nil
     def name_unless_default
-      name == 'default' ? nil : name
-    end
-
-  end
-
-  module Auth #:nodoc:
-
-    class OAuth
-
+      name == Rack::OAuth.default_instance_name ? nil : name
     end
 
   end
