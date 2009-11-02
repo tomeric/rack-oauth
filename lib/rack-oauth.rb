@@ -10,6 +10,50 @@ module Rack #:nodoc:
   #
   class OAuth
 
+    # helper methods
+    module Methods
+      
+      def request_env
+        if respond_to?(:env)
+          env
+        elsif respond_to?(:request) and request.respond_to?(:env)
+          request.env
+        else
+          raise "Couldn't find 'env' ... please override #request_env"
+        end
+      end
+
+      def oauth name = :default
+        oauth = Rack::OAuth.get(request_env, name)
+        raise "Couldn't find Rack::OAuth instance with name #{ name }" unless oauth
+        oauth
+      end
+
+      def oauth_request *args
+        oauth.request request_env, *args
+      end
+
+      # If Rack::OAuth#get_access_token is nil given the #request_env available
+      # (inotherwords, it's nil in our user's current session), then we didn't 
+      # log in.  If we have an access token for this particular session, then 
+      # we are logged in.
+      def logged_in?
+        !! oauth.get_access_token(request_env)
+      end
+
+      def login_path
+        oauth.login_path
+      end
+
+    end
+
+    class << self
+      attr_accessor :test_mode_enabled
+      def enable_test_mode()  self.test_mode_enabled =  true  end
+      def disable_test_mode() self.test_mode_enabled =  false end
+      def test_mode?()             test_mode_enabled == true  end
+    end
+
     # Returns all of the Rack::OAuth instances found in this Rack 'env' Hash
     def self.all env
       env['rack.oauth']
@@ -92,8 +136,6 @@ module Rack #:nodoc:
       env['rack.oauth'] ||= {}
       env['rack.oauth'][name] = self
 
-      @app.call env
-
       case env['PATH_INFO']
       when login_path;      do_login     env
       when callback_path;   do_callback  env
@@ -102,6 +144,14 @@ module Rack #:nodoc:
     end
 
     def do_login env
+
+      if Rack::OAuth.test_mode?
+        session(env)[:token]  = "Token" 
+        session(env)[:secret] = "Secret"
+        set_access_token env, "AccessToken"
+        return [ 302, { 'Content-Type' => 'text/html', 'Location' => redirect_to }, [] ]
+      end
+
       request = consumer.get_request_token :oauth_callback => ::File.join("http://#{ env['HTTP_HOST'] }", callback_path)
       session(env)[:token]  = request.token
       session(env)[:secret] = request.secret
@@ -117,6 +167,9 @@ module Rack #:nodoc:
       # TESTING
       session(env)[:credentials] = request env, '/account/verify_credentials.json'
 
+      puts 'credentials:'
+      puts session(env)[:credentials]
+
       [ 302, { 'Content-Type' => 'text/html', 'Location' => redirect_to }, [] ]
     end
 
@@ -126,17 +179,14 @@ module Rack #:nodoc:
     #
     # NOTE: this does NOT work with shotgun because it reloads the class and we lose the instance variables
     def get_access_token env
-      puts "GET @tokens.keys => #{ @tokens.keys }"
-      @tokens[ session(env)[:token] + session(env)[:secret] ]
+      if @tokens and session(env)[:token] and session(env)[:secret]
+        @tokens[ session(env)[:token] + session(env)[:secret] ]
+      end
     end
 
     def set_access_token env, access_token
-      puts "setting access_token:"
-      puts access_token.to_yaml
-      
       @tokens ||= {}
       @tokens[ session(env)[:token] + session(env)[:secret] ] = access_token
-      puts "SET @tokens.keys => #{ @tokens.keys }"
     end
 
     # Usage:
@@ -151,7 +201,29 @@ module Rack #:nodoc:
         method = :get
       end
 
+      return Rack::OAuth.mock_response_for(method, path) if Rack::OAuth.test_mode?
+
       consumer.request method.to_s.downcase.to_sym, path, get_access_token(env), *args
+    end
+
+    # move this stuff somewhere else that's just related to test stuff?
+    def self.mock_response_for method, path
+      unless @mock_responses and @mock_responses[path] and @mock_responses[path][method]
+        raise "No mock response created for #{ method.inspect } #{ path.inspect }"
+      else
+        return @mock_responses[path][method]
+      end
+    end
+    def self.mock_request method, path, response = nil
+      if method.to_s.start_with?('/')
+        response = path
+        path     = method
+        method   = :get
+      end
+
+      @mock_responses ||= {}
+      @mock_responses[path] ||= {}
+      @mock_responses[path][method] = response
     end
 
     def verified? env
