@@ -30,6 +30,17 @@ module Rack #:nodoc:
     # Helper methods intended to be included in your Rails controller or 
     # in your Sinatra helpers block
     module Methods
+
+      # This is *the* method you want to call.
+      #
+      # After you're authorized and redirected back to your #redirect_to path, 
+      # you should be able to call get_access_token to get and hold onto 
+      # the access token for the user you've been authorized as.
+      #
+      # You can use the token to make GET/POST/etc requests
+      def get_access_token name = nil
+        oauth(name).get_access_token(oauth_request_env)
+      end
       
       # [Internal] this method returns the Rack 'env' for the current request.
       #
@@ -51,32 +62,6 @@ module Rack #:nodoc:
         oauth = Rack::OAuth.get(oauth_request_env, nil)
         raise "Couldn't find Rack::OAuth instance with name #{ name }" unless oauth
         oauth
-      end
-
-      # Makes a request using the stored access token for the current session.
-      #
-      # Without a user logged in to an OAuth provider in the current session, this won't work.
-      #
-      # This is *not* the method to use to fire off requests for saved access tokens.
-      def oauth_request *args
-        oauth.request oauth_request_env, *args
-      end
-
-      def oauth_request_with_access_token token, *args
-        oauth.request_with_access_token token, *args
-      end
-
-      # Get the access token object for the currently authorized session
-      def oauth_access_token name = nil
-        oauth(name).get_access_token(oauth_request_env)
-      end
-
-      # If Rack::OAuth#get_access_token is nil given the #oauth_request_env available
-      # (inotherwords, it's nil in our user's current session), then we didn't 
-      # log in.  If we have an access token for this particular session, then 
-      # we are logged in.
-      def logged_in? name = nil
-        !! oauth_access_token(name)
       end
 
       # Returns the path to rediret to for logging in via OAuth
@@ -117,31 +102,8 @@ module Rack #:nodoc:
       :login_path          => '/oauth_login',
       :callback_path       => '/oauth_callback',
       :redirect_to         => '/oauth_complete',
-      :rack_session        => 'rack.session',
-      :json_parser         => lambda {|json_string| require 'json'; JSON.parse(json_string); },
-      :access_token_getter => lambda {|key, oauth| oauth.get_access_token_via_instance_variable(key) },
-      :access_token_setter => lambda {|key, token, oauth| oauth.set_access_token_via_instance_variable(key, token) }
+      :rack_session        => 'rack.session'
     }
-
-    # A proc that accepts an argument for the KEY we're using to get an access token 
-    # that should return the actual access token object.
-    #
-    # A second parameter is passed to your block with the Rack::OAuth instance
-    #
-    # This allows you to override how access tokens are persisted
-    attr_accessor :access_token_getter
-    alias get  access_token_getter
-    alias get= access_token_getter=
-
-    # A proc that accepts an argument for the KEY we're using to set an access token 
-    # and a second argument with the actual access token object.
-    #
-    # A third parameter is passed to your block with the Rack::OAuth instance
-    #
-    # This allows you to override how access tokens are persisted
-    attr_accessor :access_token_setter
-    alias set  access_token_setter
-    alias set= access_token_setter=
 
     # the URL that should initiate OAuth and redirect to the OAuth provider's login page
     def login_path
@@ -182,9 +144,6 @@ module Rack #:nodoc:
     alias site  consumer_site
     alias site= consumer_site=
 
-    # a Proc that accepts a JSON string and returns a Ruby object.  Defaults to using the 'json' gem, if available.
-    attr_accessor :json_parser
-
     # an arbitrary name for this instance of Rack::OAuth
     def name
       @name.to_s
@@ -204,96 +163,76 @@ module Rack #:nodoc:
     end
 
     def call env
+      # put this instance of Rack::OAuth in the env 
+      # so it's accessible from the application
       env['rack.oauth'] ||= {}
       env['rack.oauth'][name] = self
 
       case env['PATH_INFO']
-      when login_path;      do_login     env
-      when callback_path;   do_callback  env
-      else;                 @app.call    env
+      
+      # find out where to redirect to authorize for this oauth provider 
+      # and redirect there.  when the authorization is finished, 
+      # the provider will redirect back to our application's callback path
+      when login_path
+        do_login(env)
+
+      # the oauth provider has redirected back to us!  we should have a 
+      # verifier now that we can use, in combination with out token and 
+      # secret, to get an access token for this user
+      when callback_path
+        do_callback(env)
+
+      else
+        @app.call(env)
       end
     end
 
     def do_login env
-
       if Rack::OAuth.test_mode?
-        session(env)[:token]  = "Token" 
-        session(env)[:secret] = "Secret"
-        set_access_token env, "AccessToken"
+        set_access_token env, OpenStruct.new(:params => { 'I am a' => 'fake token' })
         return [ 302, { 'Content-Type' => 'text/html', 'Location' => redirect_to }, [] ]
       end
 
+      # get request token and hold onto the token/secret (which we need later to get the access token)
       request = consumer.get_request_token :oauth_callback => ::File.join("http://#{ env['HTTP_HOST'] }", callback_path)
       session(env)[:token]  = request.token
       session(env)[:secret] = request.secret
+
+      # redirect to the oauth provider's authorize url to authorize the user
       [ 302, { 'Content-Type' => 'text/html', 'Location' => request.authorize_url }, [] ]
     end
 
     def do_callback env
-      session(env)[:verifier] = Rack::Request.new(env).params['oauth_verifier']
+      # get access token and persist it in the session in a way that we can get it back out later
       request = ::OAuth::RequestToken.new consumer, session(env)[:token], session(env)[:secret]
-      access  = request.get_access_token :oauth_verifier => session(env)[:verifier]
+      set_access_token env, request.get_access_token(:oauth_verifier => Rack::Request.new(env).params['oauth_verifier'])
 
-      # hold onto the access token
-      set_access_token env, access
+      # clear out the session variables (won't need these anymore)
+      session(env).delete(:token)
+      session(env).delete(:secret)
 
+      # we have an access token now ... redirect back to the user's application
       [ 302, { 'Content-Type' => 'text/html', 'Location' => redirect_to }, [] ]
     end
 
-    # Default implementation of access_token_getter
-    #
-    # Keeps tokens in an instance variable
-    def get_access_token_via_instance_variable key
-      @tokens[key] if @tokens
-    end
-
-    # Default implementation of access_token_setter
-    #
-    # Keeps tokens in an instance variable
-    def set_access_token_via_instance_variable key, token
-      @tokens ||= {}
-      @tokens[key] = token
-    end
-
-    # Returns the key to use (for this particular session) to get or set an 
-    # access token for this Rack env
-    #
-    # TODO this will very likely change as we want to be able to get or set 
-    #      access tokens using useful data like a user's name in the future
-    def key_for_env env
-      val = session(env)[:token] + session(env)[:secret] if session(env)[:token] and session(env)[:secret]
-      session(env)[:token] + session(env)[:secret] if session(env)[:token] and session(env)[:secret]
-    end
-
-    # Gets an Access Token by key using access_token_getter (for this specific ENV)
-    def get_access_token env
-      access_token_getter.call key_for_env(env), self
-    end
-
-    # Sets an Access Token by key and value using access_token_setter (for this specific ENV)
+    # Stores the access token in this env's session in a way that we can get it back out via #get_access_token(env)
     def set_access_token env, token
-      access_token_setter.call key_for_env(env), token, self
+      session(env)[:access_token_params] = token.params
+    end
+
+    # See #set_access_token
+    def get_access_token env
+      params = session(env)[:access_token_params]
+      ::OAuth::AccessToken.from_hash consumer, params if params
     end
 
     # Usage:
     #
-    #   request '/account/verify_credentials.json'
-    #   request 'GET', '/account/verify_credentials.json'
-    #   request :post, '/statuses/update.json', :status => params[:tweet]
+    #   request @token, '/account/verify_credentials.json'
+    #   request @token, 'GET', '/account/verify_credentials.json'
+    #   request @token, :post, '/statuses/update.json', :status => params[:tweet]
     #
-    def request env, method, path = nil, *args
-      if method.to_s.start_with?('/')
-        path   = method
-        method = :get
-      end
-
-      return Rack::OAuth.mock_response_for(method, path) if Rack::OAuth.test_mode?
-
-      consumer.request method.to_s.downcase.to_sym, path, get_access_token(env), *args
-    end
-
-    # Same as #request but you can manually pass your own request token
-    def request_with_access_token token, method, path = nil, *args
+    def request token, method, path = nil, *args
       if method.to_s.start_with?('/')
         path   = method
         method = :get

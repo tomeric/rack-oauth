@@ -8,40 +8,23 @@ use Rack::OAuth, :site => 'http://twitter.com', :key => '4JjFmhjfZyQ6rdbiql5A',
                  :secret => 'rv4ZaCgvxVPVjxHIDbMxTGFbIMxUa4KkIdPqL7HmaQo'
 
 helpers do
-
-  # todo ... make wrapper that handles ENV?
-  def oauth
-    Rack::OAuth.get(env)
-  end
-
+  include Rack::OAuth::Methods
 end
 
 get '/' do
-  haml :index
+  "home page"
 end
 
 get '/creds' do
-  @user = oauth.request(env, '/account/verify_credentials.json') if oauth.verified?(env)
-  haml :index
+  info = get_access_token.get '/account/verify_credentials.json'
+  info.to_yaml
 end
 
 get '/oauth_complete' do
-  redirect '/'
+  "oauth complete! ... session: #{ session.to_yaml }"
 end
 
 get '/logout' do
   session.clear
   redirect '/'
 end
-
-__END__
-
-@@ index
-
-%h1 Twitter OAuth Example
-
-- if @user
-  %p User:
-  %pre~ @user.to_yaml
-
-%pre~ session.to_yaml
