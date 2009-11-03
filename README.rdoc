@@ -1,9 +1,3 @@
-== OUT-OF-DATE
-
-I'll be releasing new documentation shortly ... everything should be *nearly* entirely backwards compatible ...
-if it's not, I'll document changes you need to make to use 0.2.0
-
-
 = Rack::OAuth
 
 Rack::OAuth is a Rack middleware for easily integrating OAuth into your Ruby web applications.
@@ -39,11 +33,20 @@ There are a number of defaults that can be overridden.  Defaults can be viewed a
                    :login        => '/path_that_will_goto_oauth_providers_login',
                    :redirect     => '/path_to_redirect_to_after_oauth_authorization',
                    :session_key  => 'name_of_session_variable_to_store_oauth_user_info_in',
-                   :rack_session => 'name_of_rack_session_variable',
-                   :json_parser  => lambda {|json_string| return SomeParser.parse(json_string) }
+                   :rack_session => 'name_of_rack_session_variable'
+
+The important thing to note is that, after you redirect to /oauth_login and the OAuth provider 
+redirects back to your web application at /oauth_complete, you can gain access to the user's 
+access token.  This is what lets you make requests to Twitter and whatnot to post tweets or 
+merely get the user's information.
+
+The easiest way to do this is to include the Rack::OAuth::Methods module in your ApplicationController, 
+if you're using Rails, or your helpers block, if you're using Sinatra or ... wherever.  Once you've done 
+that, you can just call #get_access_token to get the access token.  For example, if you want to get the 
+user's twitter profile information you can:
+
+  json = get_access_token.get('/account/verify_credentials.json').body
 
 === Notes
 
 Rack::OAuth was created to work with Twitter OAuth and has, thus far, only been tested using Twitter's OAuth.  If this doesn't work for you for a different OAuth provider, please let me know!  Or, if you patch Rack::OAuth to support another provider, please send me a pull request with the patch.
-
-Also, I haven't added any specs yet.  My bad.
