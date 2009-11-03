@@ -9,4 +9,10 @@ class ApplicationController < ActionController::Base
 
   # Scrub sensitive parameters from your log
   # filter_parameter_logging :password
+  
+private
+
+  def logged_in?
+    get_access_token.present?
+  end
 end

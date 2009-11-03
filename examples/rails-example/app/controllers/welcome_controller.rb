@@ -16,14 +16,8 @@ class WelcomeController < ApplicationController
 
   # GET /oauth_complete
   def after_login
-    if oauth_access_token
-      session[:info] = oauth_request_with_access_token oauth_access_token, '/account/verify_credentials.json'
-      render :text => 'got token!'
-    else 
-      render :text => 'no token?'
-    end
-
-    # redirect_to root_path
+    session[:info] = get_access_token.get('/account/verify_credentials.json').body
+    redirect_to root_path
   end
 
 end

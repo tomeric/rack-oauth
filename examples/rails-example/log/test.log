@@ -1589,3 +1589,162 @@ REQUESTING PAGE: GET / with {} and HTTP headers {"HTTP_REFERER"=>"http://www.exa
 
 Processing WelcomeController#index (for 127.0.0.1 at 2009-11-02 18:10:33) [GET]
 Completed in 1ms (View: 0, DB: 0) | 200 OK [http://www.example.com/]
+REQUESTING PAGE: GET / with {} and HTTP headers {}
+
+
+Processing WelcomeController#index (for 127.0.0.1 at 2009-11-02 20:44:50) [GET]
+
+NoMethodError (undefined method `logged_in?' for #<WelcomeController:0x7f0aa3be34f8>):
+  app/controllers/welcome_controller.rb:5:in `index'
+  webrat (0.4.4) lib/webrat/rails.rb:70:in `send'
+  webrat (0.4.4) lib/webrat/rails.rb:70:in `do_request'
+  webrat (0.4.4) lib/webrat/rails.rb:35:in `get'
+  webrat (0.4.4) lib/webrat/core/session.rb:104:in `send'
+  webrat (0.4.4) lib/webrat/core/session.rb:104:in `request_page'
+  webrat (0.4.4) lib/webrat/core/session.rb:205:in `visit'
+  (eval):2:in `visit'
+  /spec/integration/login_spec.rb:8
+  rspec (1.2.8) lib/spec/example/example_methods.rb:40:in `instance_eval'
+  rspec (1.2.8) lib/spec/example/example_methods.rb:40:in `execute'
+  /usr/lib/ruby/1.8/timeout.rb:53:in `timeout'
+  rspec (1.2.8) lib/spec/example/example_methods.rb:37:in `execute'
+  rspec (1.2.8) lib/spec/example/example_group_methods.rb:207:in `run_examples'
+  rspec (1.2.8) lib/spec/example/example_group_methods.rb:205:in `each'
+  rspec (1.2.8) lib/spec/example/example_group_methods.rb:205:in `run_examples'
+  rspec (1.2.8) lib/spec/example/example_group_methods.rb:103:in `run'
+  rspec (1.2.8) lib/spec/runner/example_group_runner.rb:23:in `run'
+  rspec (1.2.8) lib/spec/runner/example_group_runner.rb:22:in `each'
+  rspec (1.2.8) lib/spec/runner/example_group_runner.rb:22:in `run'
+  rspec (1.2.8) lib/spec/runner/options.rb:127:in `run_examples'
+  rspec (1.2.8) lib/spec/runner/command_line.rb:9:in `run'
+  rspec (1.2.8) bin/spec:4
+  /usr/bin/spec:19:in `load'
+  /usr/bin/spec:19
+
+Rendered rescues/_trace (193.6ms)
+Rendered rescues/_request_and_response (1.6ms)
+Rendering rescues/layout (internal_server_error)
+REQUESTING PAGE: GET / with {} and HTTP headers {}
+
+
+Processing WelcomeController#index (for 127.0.0.1 at 2009-11-02 20:45:47) [GET]
+Completed in 6ms (View: 0, DB: 0) | 200 OK [http://www.example.com/]
+REQUESTING PAGE: GET /login with {} and HTTP headers {"HTTP_REFERER"=>"/"}
+
+
+Processing WelcomeController#login (for 127.0.0.1 at 2009-11-02 20:45:47) [GET]
+Redirected to http://www.example.com/oauth_login
+Completed in 0ms (DB: 0) | 302 Found [http://www.example.com/login]
+REQUESTING PAGE: GET http://www.example.com/oauth_login with {} and HTTP headers {"HTTP_REFERER"=>"/login"}
+REQUESTING PAGE: GET /oauth_complete with {} and HTTP headers {"HTTP_REFERER"=>"http://www.example.com/oauth_login"}
+
+
+Processing WelcomeController#after_login (for 127.0.0.1 at 2009-11-02 20:45:47) [GET]
+
+NameError (undefined local variable or method `oauth_access_token' for #<WelcomeController:0x7f45a7a74858>):
+  app/controllers/welcome_controller.rb:19:in `after_login'
+  webrat (0.4.4) lib/webrat/rails.rb:70:in `send'
+  webrat (0.4.4) lib/webrat/rails.rb:70:in `do_request'
+  webrat (0.4.4) lib/webrat/rails.rb:35:in `get'
+  webrat (0.4.4) lib/webrat/core/session.rb:106:in `send'
+  webrat (0.4.4) lib/webrat/core/session.rb:106:in `request_page'
+  webrat (0.4.4) lib/webrat/core/session.rb:120:in `request_page'
+  webrat (0.4.4) lib/webrat/core/session.rb:205:in `visit'
+  (eval):2:in `visit'
+  /spec/integration/login_spec.rb:11
+  rspec (1.2.8) lib/spec/example/example_methods.rb:40:in `instance_eval'
+  rspec (1.2.8) lib/spec/example/example_methods.rb:40:in `execute'
+  /usr/lib/ruby/1.8/timeout.rb:53:in `timeout'
+  rspec (1.2.8) lib/spec/example/example_methods.rb:37:in `execute'
+  rspec (1.2.8) lib/spec/example/example_group_methods.rb:207:in `run_examples'
+  rspec (1.2.8) lib/spec/example/example_group_methods.rb:205:in `each'
+  rspec (1.2.8) lib/spec/example/example_group_methods.rb:205:in `run_examples'
+  rspec (1.2.8) lib/spec/example/example_group_methods.rb:103:in `run'
+  rspec (1.2.8) lib/spec/runner/example_group_runner.rb:23:in `run'
+  rspec (1.2.8) lib/spec/runner/example_group_runner.rb:22:in `each'
+  rspec (1.2.8) lib/spec/runner/example_group_runner.rb:22:in `run'
+  rspec (1.2.8) lib/spec/runner/options.rb:127:in `run_examples'
+  rspec (1.2.8) lib/spec/runner/command_line.rb:9:in `run'
+  rspec (1.2.8) bin/spec:4
+  /usr/bin/spec:19:in `load'
+  /usr/bin/spec:19
+
+Rendered rescues/_trace (118.3ms)
+Rendered rescues/_request_and_response (1.5ms)
+Rendering rescues/layout (internal_server_error)
+REQUESTING PAGE: GET / with {} and HTTP headers {}
+
+
+Processing WelcomeController#index (for 127.0.0.1 at 2009-11-02 20:45:57) [GET]
+Completed in 6ms (View: 0, DB: 0) | 200 OK [http://www.example.com/]
+REQUESTING PAGE: GET /login with {} and HTTP headers {"HTTP_REFERER"=>"/"}
+
+
+Processing WelcomeController#login (for 127.0.0.1 at 2009-11-02 20:45:57) [GET]
+Redirected to http://www.example.com/oauth_login
+Completed in 0ms (DB: 0) | 302 Found [http://www.example.com/login]
+REQUESTING PAGE: GET http://www.example.com/oauth_login with {} and HTTP headers {"HTTP_REFERER"=>"/login"}
+REQUESTING PAGE: GET /oauth_complete with {} and HTTP headers {"HTTP_REFERER"=>"http://www.example.com/oauth_login"}
+
+
+Processing WelcomeController#after_login (for 127.0.0.1 at 2009-11-02 20:45:57) [GET]
+
+NameError (undefined local variable or method `oauth_access_token' for #<WelcomeController:0x7f6b2af39ca0>):
+  app/controllers/welcome_controller.rb:19:in `after_login'
+  webrat (0.4.4) lib/webrat/rails.rb:70:in `send'
+  webrat (0.4.4) lib/webrat/rails.rb:70:in `do_request'
+  webrat (0.4.4) lib/webrat/rails.rb:35:in `get'
+  webrat (0.4.4) lib/webrat/core/session.rb:106:in `send'
+  webrat (0.4.4) lib/webrat/core/session.rb:106:in `request_page'
+  webrat (0.4.4) lib/webrat/core/session.rb:120:in `request_page'
+  webrat (0.4.4) lib/webrat/core/session.rb:205:in `visit'
+  (eval):2:in `visit'
+  /spec/integration/login_spec.rb:11
+  rspec (1.2.8) lib/spec/example/example_methods.rb:40:in `instance_eval'
+  rspec (1.2.8) lib/spec/example/example_methods.rb:40:in `execute'
+  /usr/lib/ruby/1.8/timeout.rb:53:in `timeout'
+  rspec (1.2.8) lib/spec/example/example_methods.rb:37:in `execute'
+  rspec (1.2.8) lib/spec/example/example_group_methods.rb:207:in `run_examples'
+  rspec (1.2.8) lib/spec/example/example_group_methods.rb:205:in `each'
+  rspec (1.2.8) lib/spec/example/example_group_methods.rb:205:in `run_examples'
+  rspec (1.2.8) lib/spec/example/example_group_methods.rb:103:in `run'
+  rspec (1.2.8) lib/spec/runner/example_group_runner.rb:23:in `run'
+  rspec (1.2.8) lib/spec/runner/example_group_runner.rb:22:in `each'
+  rspec (1.2.8) lib/spec/runner/example_group_runner.rb:22:in `run'
+  rspec (1.2.8) lib/spec/runner/options.rb:127:in `run_examples'
+  rspec (1.2.8) lib/spec/runner/command_line.rb:9:in `run'
+  rspec (1.2.8) bin/spec:4
+  /usr/bin/spec:19:in `load'
+  /usr/bin/spec:19
+
+Rendered rescues/_trace (118.2ms)
+Rendered rescues/_request_and_response (1.5ms)
+Rendering rescues/layout (internal_server_error)
+REQUESTING PAGE: GET / with {} and HTTP headers {}
+
+
+Processing WelcomeController#index (for 127.0.0.1 at 2009-11-02 20:46:24) [GET]
+Completed in 5ms (View: 0, DB: 0) | 200 OK [http://www.example.com/]
+REQUESTING PAGE: GET /login with {} and HTTP headers {"HTTP_REFERER"=>"/"}
+
+
+Processing WelcomeController#login (for 127.0.0.1 at 2009-11-02 20:46:24) [GET]
+Redirected to http://www.example.com/oauth_login
+Completed in 0ms (DB: 0) | 302 Found [http://www.example.com/login]
+REQUESTING PAGE: GET http://www.example.com/oauth_login with {} and HTTP headers {"HTTP_REFERER"=>"/login"}
+REQUESTING PAGE: GET /oauth_complete with {} and HTTP headers {"HTTP_REFERER"=>"http://www.example.com/oauth_login"}
+
+
+Processing WelcomeController#after_login (for 127.0.0.1 at 2009-11-02 20:46:24) [GET]
+Redirected to http://www.example.com/
+Completed in 3ms (DB: 0) | 302 Found [http://www.example.com/oauth_complete]
+REQUESTING PAGE: GET http://www.example.com/ with {} and HTTP headers {"HTTP_REFERER"=>"/oauth_complete"}
+
+
+Processing WelcomeController#index (for 127.0.0.1 at 2009-11-02 20:46:24) [GET]
+Completed in 1ms (View: 0, DB: 0) | 200 OK [http://www.example.com/]
+REQUESTING PAGE: GET / with {} and HTTP headers {"HTTP_REFERER"=>"http://www.example.com/"}
+
+
+Processing WelcomeController#index (for 127.0.0.1 at 2009-11-02 20:46:24) [GET]
+Completed in 1ms (View: 0, DB: 0) | 200 OK [http://www.example.com/]
