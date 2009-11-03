@@ -39,12 +39,12 @@ module Rack #:nodoc:
       #
       # You can use the token to make GET/POST/etc requests
       def get_access_token name = nil
-        oauth(name).get_access_token(oauth_request_env)
+        oauth_instance(name).get_access_token(oauth_request_env)
       end
 
       # Same as #get_access_token but it clears the access token out of the session.
       def get_access_token! name = nil
-        oauth(name).get_access_token!(oauth_request_env)
+        oauth_instance(name).get_access_token!(oauth_request_env)
       end
       
       # [Internal] this method returns the Rack 'env' for the current request.
@@ -63,7 +63,7 @@ module Rack #:nodoc:
       end
 
       # Returns the instance of Rack::OAuth given a name (defaults to the default Rack::OAuth name)
-      def oauth name = nil
+      def oauth_instance name = nil
         oauth = Rack::OAuth.get(oauth_request_env, nil)
         raise "Couldn't find Rack::OAuth instance with name #{ name }" unless oauth
         oauth
@@ -71,7 +71,7 @@ module Rack #:nodoc:
 
       # Returns the path to rediret to for logging in via OAuth
       def oauth_login_path name = nil
-        oauth(name).login_path
+        oauth_instance(name).login_path
       end
 
     end
@@ -104,10 +104,10 @@ module Rack #:nodoc:
     end
 
     DEFAULT_OPTIONS = {
-      :login_path          => '/oauth_login',
-      :callback_path       => '/oauth_callback',
-      :redirect_to         => '/oauth_complete',
-      :rack_session        => 'rack.session'
+      :login_path    => '/oauth_login',
+      :callback_path => '/oauth_callback',
+      :redirect_to   => '/oauth_complete',
+      :rack_session  => 'rack.session'
     }
 
     # the URL that should initiate OAuth and redirect to the OAuth provider's login page
