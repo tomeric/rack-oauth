@@ -31,6 +31,14 @@ class SampleSinatraApp < Sinatra::Base
     end
   end
 
+  get '/get_many' do
+    get_access_token.inspect
+  end
+
+  get '/get_once' do
+    get_access_token!.inspect
+  end
+
   get '/oauth_complete' do
     info = JSON.parse get_access_token.get('/account/verify_credentials.json').body
     name = info['screen_name']
@@ -71,6 +79,13 @@ describe SampleSinatraApp do
     # now the user should be authorized
     request('/').status.should == 200
     request('/').body.should include('Hello World')
+
+    request('/get_many').body.should include('OAuth::AccessToken')
+    request('/get_many').body.should include('OAuth::AccessToken')
+
+    request('/get_once').body.should include('OAuth::AccessToken')
+    request('/get_once').body.should_not include('OAuth::AccessToken')
+    request('/get_once').body.should_not include('OAuth::AccessToken')
   end
 
 end

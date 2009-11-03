@@ -17,8 +17,6 @@ begin
     s.files       = FileList['[A-Z]*', '{lib,spec,bin,examples}/**/*'] 
     s.add_dependency 'oauth'
     s.add_dependency 'rack'
-    # s.executables << 'script'
-    # s.rubyforge_project = 'gemname'
     s.extra_rdoc_files = %w( README.rdoc )
   end
 rescue LoadError

@@ -41,6 +41,11 @@ module Rack #:nodoc:
       def get_access_token name = nil
         oauth(name).get_access_token(oauth_request_env)
       end
+
+      # Same as #get_access_token but it clears the access token out of the session.
+      def get_access_token! name = nil
+        oauth(name).get_access_token!(oauth_request_env)
+      end
       
       # [Internal] this method returns the Rack 'env' for the current request.
       #
@@ -223,6 +228,12 @@ module Rack #:nodoc:
     # See #set_access_token
     def get_access_token env
       params = session(env)[:access_token_params]
+      ::OAuth::AccessToken.from_hash consumer, params if params
+    end
+
+    # Same as #get_access_token but it clears the access token info out of the session
+    def get_access_token! env
+      params = session(env).delete(:access_token_params)
       ::OAuth::AccessToken.from_hash consumer, params if params
     end
 
