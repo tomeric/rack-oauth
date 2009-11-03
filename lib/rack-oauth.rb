@@ -2,6 +2,23 @@ require 'rubygems'
 require 'rack'
 require 'oauth'
 
+# For some reason, getting the location our of a HeaderHash doesn't always work!
+#
+# sometimes you can see the header key/value in the HeaderHash, but you can't get it out!
+class Rack::Utils::HeaderHash
+  def [] key
+    if not has_key?(key)
+      hash = to_hash
+      hash.keys.each do |hash_key|
+        if hash_key.downcase == key.downcase
+          return hash[hash_key]
+        end
+      end
+    end
+    super
+  end
+end
+
 module Rack #:nodoc:
 
   # Rack Middleware for integrating OAuth into your application
@@ -43,6 +60,10 @@ module Rack #:nodoc:
       # This is *not* the method to use to fire off requests for saved access tokens.
       def oauth_request *args
         oauth.request oauth_request_env, *args
+      end
+
+      def oauth_request_with_access_token token, *args
+        oauth.request_with_access_token token, *args
       end
 
       # Get the access token object for the currently authorized session
@@ -269,6 +290,18 @@ module Rack #:nodoc:
       return Rack::OAuth.mock_response_for(method, path) if Rack::OAuth.test_mode?
 
       consumer.request method.to_s.downcase.to_sym, path, get_access_token(env), *args
+    end
+
+    # Same as #request but you can manually pass your own request token
+    def request_with_access_token token, method, path = nil, *args
+      if method.to_s.start_with?('/')
+        path   = method
+        method = :get
+      end
+
+      return Rack::OAuth.mock_response_for(method, path) if Rack::OAuth.test_mode?
+
+      consumer.request method.to_s.downcase.to_sym, path, token, *args
     end
 
     # Returns the mock response, if one has been set via #mock_request, for a method and path.
