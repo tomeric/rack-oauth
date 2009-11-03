@@ -9,6 +9,8 @@ require File.join(File.dirname(__FILE__), 'boot')
 require File.dirname(__FILE__) + '/../../../lib/rack-oauth'
 
 Rails::Initializer.run do |config|
-  config.middleware.use Rack::OAuth, :key => '123', :secret => '123', :site => 'http://twitter.com'
+  config.middleware.use Rack::OAuth, :site   => 'http://twitter.com', 
+                                     :key    => '4JjFmhjfZyQ6rdbiql5A', 
+                                     :secret => 'rv4ZaCgvxVPVjxHIDbMxTGFbIMxUa4KkIdPqL7HmaQo'
   config.time_zone = 'UTC'
 end
