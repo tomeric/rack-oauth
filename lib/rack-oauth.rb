@@ -237,50 +237,6 @@ module Rack #:nodoc:
       ::OAuth::AccessToken.from_hash consumer, params if params
     end
 
-    # Usage:
-    #
-    #   request @token, '/account/verify_credentials.json'
-    #   request @token, 'GET', '/account/verify_credentials.json'
-    #   request @token, :post, '/statuses/update.json', :status => params[:tweet]
-    #
-    def request token, method, path = nil, *args
-      if method.to_s.start_with?('/')
-        path   = method
-        method = :get
-      end
-
-      return Rack::OAuth.mock_response_for(method, path) if Rack::OAuth.test_mode?
-
-      consumer.request method.to_s.downcase.to_sym, path, token, *args
-    end
-
-    # Returns the mock response, if one has been set via #mock_request, for a method and path.
-    #
-    # Raises an exception if the response doesn't exist because we never want the test environment 
-    # to *actually* make real requests!
-    def self.mock_response_for method, path
-      unless @mock_responses and @mock_responses[path] and @mock_responses[path][method]
-        raise "No mock response created for #{ method.inspect } #{ path.inspect }"
-      else
-        return @mock_responses[path][method]
-      end
-    end
-
-    # Set the response that should be returned when a particular method and path are called.
-    #
-    # This is used when Rack::OAuth::test_mode? is true
-    def self.mock_request method, path, response = nil
-      if method.to_s.start_with?('/')
-        response = path
-        path     = method
-        method   = :get
-      end
-
-      @mock_responses ||= {}
-      @mock_responses[path] ||= {}
-      @mock_responses[path][method] = response
-    end
-
     def verified? env
       [ :token, :secret, :verifier ].all? { |required_session_key| session(env)[required_session_key] }
     end
