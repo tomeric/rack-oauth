@@ -2,6 +2,8 @@
 
 Rack::OAuth is a Rack middleware for easily integrating OAuth into your Ruby web applications.
 
+== THIS DOCUMENTATION IS OUT-OF-DATE ... UPDATE COMING SOON!
+
 == Installation
 
   $ gem sources -a http://gems.github.com
