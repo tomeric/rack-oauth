@@ -3,8 +3,6 @@ require 'rubygems'
 require 'rake/rdoctask'
 require 'spec/rake/spectask'
 
-puts "\nGem: rack-oauth\n\n"
-
 begin
   require 'jeweler'
   Jeweler::Tasks.new do |s|
@@ -14,13 +12,13 @@ begin
     s.homepage    = 'http://github.com/remi/rack-oauth'
     s.description = 'Rack Middleware for OAuth Authorization'
     s.authors     = %w( remi )
-    s.files       = FileList['[A-Z]*', '{lib,spec,bin,examples}/**/*'] 
+    s.files       = FileList['[A-Z]*', '{lib,spec,bin,examples}/**/*']
     s.add_dependency 'oauth'
     s.add_dependency 'rack'
     s.extra_rdoc_files = %w( README.rdoc )
   end
 rescue LoadError
-  puts "Jeweler not available. Install it with: sudo gem install technicalpickles-jeweler -s http://gems.github.com"
+  puts "Jeweler not available. Install it with: sudo gem install jeweler"
 end
 
 Spec::Rake::SpecTask.new do |t|
